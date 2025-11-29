@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:extractWave}",
+            "name": "Debug WaveformTest",
+            "target": "WaveformTest",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug WaveformTest"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:extractWave}",
+            "name": "Release WaveformTest",
+            "target": "WaveformTest",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release WaveformTest"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:extractWave}",
+            "name": "Debug SwiftWaveformTest",
+            "target": "SwiftWaveformTest",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug SwiftWaveformTest"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:extractWave}",
+            "name": "Release SwiftWaveformTest",
+            "target": "SwiftWaveformTest",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release SwiftWaveformTest"
+        }
+    ]
+}
