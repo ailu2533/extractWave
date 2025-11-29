@@ -76,7 +76,7 @@ extension WaveformExtractor {
     }
 
     private func extractWaveform(url: URL, points: Int) throws -> WaveformData {
-        let path = url.path
+        let path = url.path(percentEncoded: false)
         // Open input file
         var fmtCtx: UnsafeMutablePointer<AVFormatContext>?
         guard avformat_open_input(&fmtCtx, path, nil, nil) >= 0 else {
