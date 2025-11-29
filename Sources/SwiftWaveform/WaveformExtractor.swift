@@ -29,9 +29,9 @@ public actor WaveformExtractor {
     }
 
     /// Extract waveform (full decode, accurate)
-    public func extract(url: URL, points: Int = defaultPoints) throws -> WaveformData {
+    public func extract(url: URL, duration: Double = -1, points: Int = defaultPoints) throws -> WaveformData {
         reset()
-        return try extractWaveform(url: url, points: points)
+        return try extractWaveform(url: url, duration: duration, points: points)
     }
 }
 
@@ -44,7 +44,7 @@ extension WaveformExtractor {
         }
     }
 
-    private func extractWaveform(url: URL, points: Int) throws -> WaveformData {
+    private func extractWaveform(url: URL, duration: Double, points: Int) throws -> WaveformData {
         let path = url.path(percentEncoded: false)
         // Open input file
         var fmtCtx: UnsafeMutablePointer<AVFormatContext>?
@@ -69,9 +69,6 @@ extension WaveformExtractor {
         // Create resampler
         var swrCtx = try createResampler(codecCtx: codecCtx!)
         defer { swr_free(&swrCtx) }
-
-        // Get duration
-        let duration = getDuration(fmtCtx: fmtCtx!, stream: stream)
 
         // Allocate packet and frame
         var packet: UnsafeMutablePointer<AVPacket>? = av_packet_alloc()

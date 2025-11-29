@@ -72,18 +72,6 @@ extension WaveformExtractor {
         return ctx
     }
 
-    func getDuration(fmtCtx: UnsafeMutablePointer<AVFormatContext>,
-                     stream: UnsafeMutablePointer<AVStream>) -> Double {
-        if stream.pointee.duration > 0 {
-            let timeBase = stream.pointee.time_base
-            return Double(stream.pointee.duration) * Double(timeBase.num) / Double(timeBase.den)
-        }
-        if fmtCtx.pointee.duration > 0 {
-            return Double(fmtCtx.pointee.duration) / Double(AV_TIME_BASE)
-        }
-        return 0
-    }
-
     func processFrame(frame: UnsafeMutablePointer<AVFrame>,
                       swrCtx: OpaquePointer,
                       processor: inout StreamingWaveformProcessor) throws {
