@@ -1,4 +1,3 @@
-import Atomics
 import FFmpegKitSPM
 import Foundation
 
@@ -11,40 +10,18 @@ public actor WaveformExtractor {
     public static let targetSampleRate: Int32 = 4000
     private static let amplitudeBoost: Double = 2.5 // Match C++ version
 
-    // nonisolated Atomic 允许从任何线程取消
-    private let _cancelled = ManagedAtomic<Bool>(false)
-
     public init() {}
 
-    public nonisolated func cancel() {
-        _cancelled.store(true, ordering: .relaxed)
-    }
-
-    public nonisolated func reset() {
-        _cancelled.store(false, ordering: .relaxed)
-    }
-
-    public nonisolated var isCancelled: Bool {
-        _cancelled.load(ordering: .relaxed)
-    }
-
     /// Extract waveform (full decode, accurate)
-    public func extract(url: URL, duration: Double = -1, points: Int = defaultPoints) throws -> WaveformData {
-        reset()
-        return try extractWaveform(url: url, duration: duration, points: points)
+    public func extract(url: URL, duration: Double = -1, points: Int = defaultPoints) async throws -> WaveformData {
+        return try await extractWaveform(url: url, duration: duration, points: points)
     }
 }
 
 // MARK: - Private Implementation
 
 extension WaveformExtractor {
-    private func checkCancelled() throws {
-        if isCancelled {
-            throw WaveformError.cancelled
-        }
-    }
-
-    private func extractWaveform(url: URL, duration: Double, points: Int) throws -> WaveformData {
+    private func extractWaveform(url: URL, duration: Double, points: Int) async throws -> WaveformData {
         let path = url.path(percentEncoded: false)
         // Open input file
         var fmtCtx: UnsafeMutablePointer<AVFormatContext>?
@@ -100,7 +77,7 @@ extension WaveformExtractor {
             // Check cancellation every 100 frames
             frameCount += 1
             if frameCount % 100 == 0 {
-                try checkCancelled()
+                try Task.checkCancellation()
             }
 
             // Send packet to decoder

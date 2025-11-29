@@ -1,4 +1,3 @@
-import Atomics
 import Foundation
 @testable import SwiftWaveform
 import Testing
@@ -81,20 +80,7 @@ struct WaveformExtractorTests {
 
     // MARK: - Cancel Tests
 
-    @Test("Cancel flag works")
-    func cancelFlag() {
-        let extractor = WaveformExtractor()
-
-        #expect(extractor.isCancelled == false)
-
-        extractor.cancel()
-        #expect(extractor.isCancelled == true)
-
-        extractor.reset()
-        #expect(extractor.isCancelled == false)
-    }
-
-    @Test("Cancelled extraction throws error")
+    @Test("Cancelled extraction throws CancellationError")
     func cancelledExtraction() async throws {
         guard let url = largeAudioURL() else {
             Issue.record("Large audio file not found")
@@ -102,25 +88,22 @@ struct WaveformExtractorTests {
         }
 
         let extractor = WaveformExtractor()
-        let started = ManagedAtomic<Bool>(false)
 
         let extractTask = Task {
-            started.store(true, ordering: .relaxed)
-            return try await extractor.extract(url: url)
+            try await extractor.extract(url: url)
         }
 
-        while !started.load(ordering: .relaxed) {
-            try await Task.sleep(for: .milliseconds(1))
-        }
+        // 等待一段时间让任务开始执行
+        try await Task.sleep(for: .milliseconds(100))
 
-        try await Task.sleep(for: .milliseconds(500))
-        extractor.cancel()
+        // 使用 Task.cancel() 取消任务
+        extractTask.cancel()
 
         do {
             _ = try await extractTask.value
             Issue.record("Expected cancellation error")
-        } catch let error as WaveformError {
-            #expect(error == .cancelled)
+        } catch is CancellationError {
+            // 预期的取消错误
         }
     }
 

@@ -12,14 +12,12 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ailu2533/FFmpegKitSPM.git", branch: "main"),
-        .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
     ],
     targets: [
         .target(
             name: "SwiftWaveform",
             dependencies: [
                 .product(name: "FFmpegKitSPM", package: "FFmpegKitSPM"),
-                .product(name: "Atomics", package: "swift-atomics"),
             ],
             path: "Sources/SwiftWaveform"
         ),
@@ -27,7 +25,6 @@ let package = Package(
             name: "SwiftWaveformTests",
             dependencies: [
                 "SwiftWaveform",
-                .product(name: "Atomics", package: "swift-atomics"),
             ],
             resources: [.process("Resources")]
         ),
