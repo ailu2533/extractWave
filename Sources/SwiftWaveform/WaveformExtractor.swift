@@ -14,7 +14,7 @@ public struct WaveformData: Sendable {
     public var pointCount: Int { data.count }
 }
 
-public enum WaveformError: Error, LocalizedError {
+public enum WaveformError: Error, LocalizedError, Equatable {
     case fileNotFound(String)
     case noAudioStream
     case codecNotFound
@@ -36,9 +36,13 @@ public enum WaveformError: Error, LocalizedError {
     }
 }
 
-// MARK: - Cancel Flag
+// MARK: - Waveform Extractor
 
-public final class CancelFlag: Sendable {
+public final class WaveformExtractor: Sendable {
+    public static let defaultPoints = 120
+    public static let targetSampleRate: Int32 = 4000
+    private static let amplitudeBoost: Double = 2.5 // Match C++ version
+
     private let _cancelled = ManagedAtomic<Bool>(false)
 
     public init() {}
@@ -54,35 +58,11 @@ public final class CancelFlag: Sendable {
     public var isCancelled: Bool {
         _cancelled.load(ordering: .relaxed)
     }
-}
-
-// MARK: - Waveform Extractor
-
-public final class WaveformExtractor: @unchecked Sendable {
-    public static let defaultPoints = 120
-    public static let targetSampleRate: Int32 = 4000
-    private static let amplitudeBoost: Double = 2.5 // Match C++ version
-
-    private let cancelFlag = CancelFlag()
-
-    public init() {}
-
-    public func cancel() {
-        cancelFlag.cancel()
-    }
-
-    public func reset() {
-        cancelFlag.reset()
-    }
-
-    public var isCancelled: Bool {
-        cancelFlag.isCancelled
-    }
 
     /// Extract waveform (full decode, accurate)
-    public func extract(path: String, points: Int = defaultPoints) throws -> WaveformData {
+    public func extract(url: URL, points: Int = defaultPoints) throws -> WaveformData {
         reset()
-        return try extractWaveform(path: path, points: points)
+        return try extractWaveform(url: url, points: points)
     }
 }
 
@@ -90,12 +70,13 @@ public final class WaveformExtractor: @unchecked Sendable {
 
 extension WaveformExtractor {
     private func checkCancelled() throws {
-        if cancelFlag.isCancelled {
+        if isCancelled {
             throw WaveformError.cancelled
         }
     }
 
-    private func extractWaveform(path: String, points: Int) throws -> WaveformData {
+    private func extractWaveform(url: URL, points: Int) throws -> WaveformData {
+        let path = url.path
         // Open input file
         var fmtCtx: UnsafeMutablePointer<AVFormatContext>?
         guard avformat_open_input(&fmtCtx, path, nil, nil) >= 0 else {

@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
@@ -22,6 +22,11 @@ let package = Package(
                 .product(name: "Atomics", package: "swift-atomics"),
             ],
             path: "Sources/SwiftWaveform"
+        ),
+        .testTarget(
+            name: "SwiftWaveformTests",
+            dependencies: ["SwiftWaveform"],
+            resources: [.process("Resources")]
         ),
     ]
 )
