@@ -42,42 +42,17 @@ extension URL {
             throw WaveformError.decodeFailed("Cannot find stream info")
         }
 
-        // 查找音频流
-        var audioStreamIndex: Int = -1
-        let nbStreams = Int(fmtCtx!.pointee.nb_streams)
-        for i in 0 ..< nbStreams {
-            if let stream = fmtCtx!.pointee.streams[i],
-               let codecParams = stream.pointee.codecpar,
-               codecParams.pointee.codec_type == AVMEDIA_TYPE_AUDIO {
-                audioStreamIndex = i
-                break
-            }
-        }
-
+        // 查找最佳音频流
+        let audioStreamIndex = av_find_best_stream(fmtCtx, AVMEDIA_TYPE_AUDIO, -1, -1, nil, 0)
         guard audioStreamIndex >= 0 else {
             throw WaveformError.noAudioStream
         }
 
-        let stream = fmtCtx!.pointee.streams[audioStreamIndex]!
+        let stream = fmtCtx!.pointee.streams[Int(audioStreamIndex)]!
         let timeBase = stream.pointee.time_base
 
-        // Seek到文件末尾附近
-        let seekTarget: Int64
-        if stream.pointee.duration > 0 {
-            seekTarget = stream.pointee.duration
-        } else if fmtCtx!.pointee.duration > 0 {
-            let durationInStreamTimeBase = av_rescale_q(
-                fmtCtx!.pointee.duration,
-                AVRational(num: 1, den: Int32(AV_TIME_BASE)),
-                timeBase
-            )
-            seekTarget = durationInStreamTimeBase
-        } else {
-            seekTarget = Int64.max
-        }
-
-        // Seek到最后，使用 AVSEEK_FLAG_BACKWARD 确保能找到最后一个关键帧
-        av_seek_frame(fmtCtx, Int32(audioStreamIndex), seekTarget, AVSEEK_FLAG_BACKWARD)
+        // Seek到文件末尾，AVSEEK_FLAG_BACKWARD 会让它定位到最后一个可用的关键帧
+        av_seek_frame(fmtCtx, Int32(audioStreamIndex), Int64.max, AVSEEK_FLAG_BACKWARD)
 
         // 分配packet
         var packet: UnsafeMutablePointer<AVPacket>? = av_packet_alloc()

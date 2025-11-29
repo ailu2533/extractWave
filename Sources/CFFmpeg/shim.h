@@ -5,11 +5,11 @@
 extern "C" {
 #endif
 
-#include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
-#include <libavutil/opt.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/opt.h>
 #include <libswresample/swresample.h>
 
 // Swift 无法直接访问 C 宏，需要包装成函数
@@ -66,4 +66,3 @@ static inline void ffmpeg_get_error_string(int errnum, char *buf, size_t buf_siz
 #endif
 
 #endif // CFFMPEG_SHIM_H
-
