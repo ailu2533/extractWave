@@ -45,11 +45,11 @@ extension WaveformExtractor {
 
         // Setup input channel layout
         var inChLayout = AVChannelLayout()
-        ffmpeg_channel_layout_copy(&inChLayout, &codecCtx.pointee.ch_layout)
+        av_channel_layout_copy(&inChLayout, &codecCtx.pointee.ch_layout)
 
         // Setup output channel layout (mono)
         var outChLayout = AVChannelLayout()
-        ffmpeg_set_mono_channel_layout(&outChLayout)
+        av_channel_layout_default(&outChLayout, 1)  // 1 channel = mono
 
         // Allocate resampler with new API - use S16 to match C++ version
         let ret = swr_alloc_set_opts2(
