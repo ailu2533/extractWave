@@ -1,3 +1,4 @@
+import Atomics
 import FFmpegKitSPM
 import Foundation
 
@@ -37,28 +38,21 @@ public enum WaveformError: Error, LocalizedError {
 
 // MARK: - Cancel Flag
 
-public final class CancelFlag: @unchecked Sendable {
-    private var _cancelled = false
-    private let lock = NSLock()
+public final class CancelFlag: Sendable {
+    private let _cancelled = ManagedAtomic<Bool>(false)
 
     public init() {}
 
     public func cancel() {
-        lock.lock()
-        _cancelled = true
-        lock.unlock()
+        _cancelled.store(true, ordering: .relaxed)
     }
 
     public func reset() {
-        lock.lock()
-        _cancelled = false
-        lock.unlock()
+        _cancelled.store(false, ordering: .relaxed)
     }
 
     public var isCancelled: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return _cancelled
+        _cancelled.load(ordering: .relaxed)
     }
 }
 
@@ -88,10 +82,8 @@ public final class WaveformExtractor: @unchecked Sendable {
     /// Extract waveform (full decode, accurate)
     public func extract(path: String, points: Int = defaultPoints) throws -> WaveformData {
         reset()
-        return try extractWaveform(path: path, points: points, fast: false)
+        return try extractWaveform(path: path, points: points)
     }
-
-   
 }
 
 // MARK: - Private Implementation
@@ -103,7 +95,7 @@ extension WaveformExtractor {
         }
     }
 
-    private func extractWaveform(path: String, points: Int, fast _: Bool) throws -> WaveformData {
+    private func extractWaveform(path: String, points: Int) throws -> WaveformData {
         // Open input file
         var fmtCtx: UnsafeMutablePointer<AVFormatContext>?
         guard avformat_open_input(&fmtCtx, path, nil, nil) >= 0 else {
