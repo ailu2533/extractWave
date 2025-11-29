@@ -25,3 +25,5 @@ DerivedData/
 .vscode/
 
 *.m4a
+
+.idea/

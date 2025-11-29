@@ -15,6 +15,10 @@ struct WaveformExtractorTests {
         Bundle.module.url(forResource: "large", withExtension: "m4a")
     }
 
+    func someoneLikeYouURL() -> URL? {
+        Bundle.module.url(forResource: "someoneLikeYou", withExtension: "aac")
+    }
+
     // MARK: - Basic Tests
 
     @Test("Extract waveform from audio file")
@@ -133,6 +137,57 @@ struct WaveformExtractorTests {
 
         for _ in 0 ..< 3 {
             _ = try await extractor.extract(url: url)
+        }
+    }
+
+    // MARK: - Precise Duration Tests
+
+    @Test("Get precise audio duration with AVFoundation")
+    func testAudioDuration() async throws {
+        guard let url = someoneLikeYouURL() else {
+            Issue.record("someoneLikeYou.aac not found")
+            return
+        }
+
+        let duration = try await url.audioDuration()
+
+        print("AVFoundation precise duration: \(duration ?? 0) seconds")
+
+        #expect(duration != nil, "Duration should not be nil")
+        #expect(duration! > 0, "Duration should be positive")
+    }
+
+    @Test("Get precise duration with FFmpeg seek")
+    func testPreciseDuration() async throws {
+        guard let url = someoneLikeYouURL() else {
+            Issue.record("someoneLikeYou.aac not found")
+            return
+        }
+
+        let duration = try url.preciseDuration()
+
+        print("FFmpeg precise duration: \(duration) seconds")
+
+        #expect(duration > 0, "Duration should be positive")
+    }
+
+    @Test("Compare AVFoundation and FFmpeg duration")
+    func compareDurations() async throws {
+        guard let url = someoneLikeYouURL() else {
+            Issue.record("someoneLikeYou.aac not found")
+            return
+        }
+
+        let avDuration = try await url.audioDuration()
+        let ffmpegDuration = try url.preciseDuration()
+
+        print("AVFoundation duration: \(avDuration ?? 0) seconds")
+        print("FFmpeg duration: \(ffmpegDuration) seconds")
+
+        if let avd = avDuration {
+            let diff = abs(avd - ffmpegDuration)
+            print("Difference: \(diff) seconds")
+            #expect(diff < 1.0, "Duration difference should be less than 1 second")
         }
     }
 }
