@@ -4,58 +4,27 @@ import Foundation
 
 // MARK: - Public Types
 
-public struct WaveformData: Sendable {
-    public let duration: Double
-    public let sampleRate: Int
-    public let totalSamples: Int
-    public let samplesPerPoint: Int
-    public let data: [Double]
-
-    public var pointCount: Int { data.count }
-}
-
-public enum WaveformError: Error, LocalizedError, Equatable {
-    case fileNotFound(String)
-    case noAudioStream
-    case codecNotFound
-    case codecOpenFailed(String)
-    case resamplerFailed
-    case decodeFailed(String)
-    case cancelled
-
-    public var errorDescription: String? {
-        switch self {
-        case let .fileNotFound(path): "File not found: \(path)"
-        case .noAudioStream: "No audio stream found"
-        case .codecNotFound: "Codec not found"
-        case let .codecOpenFailed(msg): "Failed to open codec: \(msg)"
-        case .resamplerFailed: "Failed to create resampler"
-        case let .decodeFailed(msg): "Decode failed: \(msg)"
-        case .cancelled: "Operation cancelled"
-        }
-    }
-}
-
 // MARK: - Waveform Extractor
 
-public final class WaveformExtractor: Sendable {
+public actor WaveformExtractor {
     public static let defaultPoints = 120
     public static let targetSampleRate: Int32 = 4000
     private static let amplitudeBoost: Double = 2.5 // Match C++ version
 
+    // nonisolated Atomic 允许从任何线程取消
     private let _cancelled = ManagedAtomic<Bool>(false)
 
     public init() {}
 
-    public func cancel() {
+    public nonisolated func cancel() {
         _cancelled.store(true, ordering: .relaxed)
     }
 
-    public func reset() {
+    public nonisolated func reset() {
         _cancelled.store(false, ordering: .relaxed)
     }
 
-    public var isCancelled: Bool {
+    public nonisolated var isCancelled: Bool {
         _cancelled.load(ordering: .relaxed)
     }
 

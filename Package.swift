@@ -25,7 +25,10 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftWaveformTests",
-            dependencies: ["SwiftWaveform"],
+            dependencies: [
+                "SwiftWaveform",
+                .product(name: "Atomics", package: "swift-atomics"),
+            ],
             resources: [.process("Resources")]
         ),
     ]

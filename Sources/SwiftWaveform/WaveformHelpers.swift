@@ -10,7 +10,8 @@ extension WaveformExtractor {
         for i in 0 ..< nbStreams {
             if let stream = fmtCtx.pointee.streams[i],
                let codecParams = stream.pointee.codecpar,
-               codecParams.pointee.codec_type == AVMEDIA_TYPE_AUDIO {
+               codecParams.pointee.codec_type == AVMEDIA_TYPE_AUDIO
+            {
                 return i
             }
         }
@@ -49,7 +50,7 @@ extension WaveformExtractor {
 
         // Setup output channel layout (mono)
         var outChLayout = AVChannelLayout()
-        av_channel_layout_default(&outChLayout, 1)  // 1 channel = mono
+        av_channel_layout_default(&outChLayout, 1) // 1 channel = mono
 
         // Allocate resampler with new API - use S16 to match C++ version
         let ret = swr_alloc_set_opts2(
@@ -77,7 +78,8 @@ extension WaveformExtractor {
     }
 
     func getDuration(fmtCtx: UnsafeMutablePointer<AVFormatContext>,
-                     stream: UnsafeMutablePointer<AVStream>) -> Double {
+                     stream: UnsafeMutablePointer<AVStream>) -> Double
+    {
         if stream.pointee.duration > 0 {
             let timeBase = stream.pointee.time_base
             return Double(stream.pointee.duration) * Double(timeBase.num) / Double(timeBase.den)
@@ -90,7 +92,8 @@ extension WaveformExtractor {
 
     func processFrame(frame: UnsafeMutablePointer<AVFrame>,
                       swrCtx: OpaquePointer,
-                      processor: inout StreamingWaveformProcessor) throws {
+                      processor: inout StreamingWaveformProcessor) throws
+    {
         let srcNbSamples = frame.pointee.nb_samples
         let dstNbSamples = swr_get_out_samples(swrCtx, srcNbSamples)
 
@@ -124,7 +127,8 @@ extension WaveformExtractor {
     }
 
     func processFrameForRMS(frame: UnsafeMutablePointer<AVFrame>,
-                            swrCtx: OpaquePointer) -> (sumSquares: Double, count: Int) {
+                            swrCtx: OpaquePointer) -> (sumSquares: Double, count: Int)
+    {
         let srcNbSamples = frame.pointee.nb_samples
         let dstNbSamples = swr_get_out_samples(swrCtx, srcNbSamples)
 

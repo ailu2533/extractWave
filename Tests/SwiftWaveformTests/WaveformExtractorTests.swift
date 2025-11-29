@@ -1,102 +1,115 @@
+import Atomics
 import Foundation
-import Testing
 @testable import SwiftWaveform
+import Testing
 
 @Suite("WaveformExtractor Tests")
 struct WaveformExtractorTests {
-    
-    let extractor = WaveformExtractor()
-    
     // MARK: - Helper
-    
+
     func testAudioURL() -> URL? {
         Bundle.module.url(forResource: "adele", withExtension: "m4a")
     }
-    
+
+    func largeAudioURL() -> URL? {
+        Bundle.module.url(forResource: "large", withExtension: "m4a")
+    }
+
     // MARK: - Basic Tests
-    
+
     @Test("Extract waveform from audio file")
-    func extractWaveform() throws {
+    func extractWaveform() async throws {
         guard let url = testAudioURL() else {
             Issue.record("Test audio file not found")
             return
         }
-        
-        let result = try extractor.extract(url: url)
-        
+
+        let extractor = WaveformExtractor()
+        let result = try await extractor.extract(url: url)
+
         #expect(result.duration > 0)
         #expect(result.sampleRate == 4000)
         #expect(result.totalSamples > 0)
         #expect(result.data.count == WaveformExtractor.defaultPoints)
         #expect(result.pointCount == result.data.count)
     }
-    
+
     @Test("Extract with custom points")
-    func extractWithCustomPoints() throws {
+    func extractWithCustomPoints() async throws {
         guard let url = testAudioURL() else {
             Issue.record("Test audio file not found")
             return
         }
-        
+
+        let extractor = WaveformExtractor()
         let customPoints = 200
-        let result = try extractor.extract(url: url, points: customPoints)
-        
+        let result = try await extractor.extract(url: url, points: customPoints)
+
         #expect(result.data.count == customPoints)
     }
-    
+
     @Test("Waveform values are normalized")
-    func waveformValuesNormalized() throws {
+    func waveformValuesNormalized() async throws {
         guard let url = testAudioURL() else {
             Issue.record("Test audio file not found")
             return
         }
-        
-        let result = try extractor.extract(url: url)
-        
-        // All values should be between 0 and 1 (after amplitude boost and clamping)
+
+        let extractor = WaveformExtractor()
+        let result = try await extractor.extract(url: url)
+
         for value in result.data {
             #expect(value >= 0.0 && value <= 1.0, "Value \(value) is out of range [0, 1]")
         }
     }
-    
+
     // MARK: - Error Tests
-    
+
     @Test("File not found throws error")
-    func fileNotFound() {
+    func fileNotFound() async {
+        let extractor = WaveformExtractor()
         let invalidURL = URL(fileURLWithPath: "/nonexistent/file.m4a")
-        
-        #expect(throws: WaveformError.self) {
-            try extractor.extract(url: invalidURL)
+
+        await #expect(throws: WaveformError.self) {
+            try await extractor.extract(url: invalidURL)
         }
     }
-    
+
     // MARK: - Cancel Tests
-    
+
     @Test("Cancel flag works")
     func cancelFlag() {
+        let extractor = WaveformExtractor()
+
         #expect(extractor.isCancelled == false)
-        
+
         extractor.cancel()
         #expect(extractor.isCancelled == true)
-        
+
         extractor.reset()
         #expect(extractor.isCancelled == false)
     }
-    
+
     @Test("Cancelled extraction throws error")
     func cancelledExtraction() async throws {
-        guard let url = testAudioURL() else {
-            Issue.record("Test audio file not found")
+        guard let url = largeAudioURL() else {
+            Issue.record("Large audio file not found")
             return
         }
 
-        // Start extraction in background and cancel immediately
-        let extractTask = Task.detached {
-            try self.extractor.extract(url: url)
+        let extractor = WaveformExtractor()
+        let started = ManagedAtomic<Bool>(false)
+
+        let extractTask = Task {
+            started.store(true, ordering: .relaxed)
+            return try await extractor.extract(url: url)
         }
 
-        // Give it a tiny moment to start, then cancel
-        try await Task.sleep(for: .milliseconds(10))
+        while !started.load(ordering: .relaxed) {
+            try await Task.sleep(for: .milliseconds(1))
+        }
+
+        try await Task.sleep(for: .milliseconds(500))
         extractor.cancel()
 
         do {
@@ -106,20 +119,20 @@ struct WaveformExtractorTests {
             #expect(error == .cancelled)
         }
     }
-    
+
     // MARK: - Performance Tests
-    
+
     @Test("Extract performance", .timeLimit(.minutes(1)))
-    func extractPerformance() throws {
+    func extractPerformance() async throws {
         guard let url = testAudioURL() else {
             Issue.record("Test audio file not found")
             return
         }
-        
-        // Run multiple times to measure performance
-        for _ in 0..<3 {
-            _ = try extractor.extract(url: url)
+
+        let extractor = WaveformExtractor()
+
+        for _ in 0 ..< 3 {
+            _ = try await extractor.extract(url: url)
         }
     }
 }
-
