@@ -112,6 +112,7 @@ public extension URL {
     }
 
     /// 使用FFmpeg通过seek到最后一帧获取精确的音频时长
+    /// 对于不支持seek的格式（如VOC），会扫描所有packets获取精确时长
     func preciseDurationSync() throws -> Double {
         let path = path(percentEncoded: false)
 
@@ -135,8 +136,8 @@ public extension URL {
         let stream = fmtCtx!.pointee.streams[Int(audioStreamIndex)]!
         let timeBase = stream.pointee.time_base
 
-        // Seek到文件末尾，AVSEEK_FLAG_BACKWARD 会让它定位到最后一个可用的关键帧
-        av_seek_frame(fmtCtx, Int32(audioStreamIndex), Int64.max, AVSEEK_FLAG_BACKWARD)
+        // 尝试 seek 到末尾
+        let seekResult = av_seek_frame(fmtCtx, Int32(audioStreamIndex), Int64.max, AVSEEK_FLAG_BACKWARD)
 
         // 分配packet
         var packet: UnsafeMutablePointer<AVPacket>? = av_packet_alloc()
@@ -148,6 +149,18 @@ public extension URL {
         // 读取最后几个packet，找到最大的pts + duration
         var maxEndTime: Int64 = 0
 
+        // 如果 seek 失败，从头开始扫描所有 packets
+        if seekResult < 0 {
+            // Seek 失败，重新打开文件从头扫描
+            avformat_close_input(&fmtCtx)
+            guard avformat_open_input(&fmtCtx, path, nil, nil) >= 0 else {
+                throw WaveformError.fileNotFound(path)
+            }
+            guard avformat_find_stream_info(fmtCtx, nil) >= 0 else {
+                throw WaveformError.decodeFailed("Cannot find stream info")
+            }
+        }
+
         while av_read_frame(fmtCtx, packet) >= 0 {
             defer { av_packet_unref(packet) }
 
@@ -155,7 +168,7 @@ public extension URL {
                 let pts = packet!.pointee.pts
                 let duration = packet!.pointee.duration
 
-                if pts != Int64(bitPattern: UInt64(0x8000000000000000)) { // AV_NOPTS_VALUE
+                if pts != avNoPtsValue {
                     let endTime = pts + duration
                     if endTime > maxEndTime {
                         maxEndTime = endTime
@@ -164,7 +177,35 @@ public extension URL {
             }
         }
 
-        print("================ maxEndTime: \(maxEndTime)")
+        // 如果 seek 成功但没有读取到任何 packet，说明 seek 把位置移到了文件末尾之后
+        // 这种情况需要回退到扫描所有 packets（如 VOC 格式）
+        if maxEndTime == 0, seekResult >= 0 {
+            // 重新打开并扫描所有 packets
+            avformat_close_input(&fmtCtx)
+            guard avformat_open_input(&fmtCtx, path, nil, nil) >= 0 else {
+                throw WaveformError.fileNotFound(path)
+            }
+            guard avformat_find_stream_info(fmtCtx, nil) >= 0 else {
+                throw WaveformError.decodeFailed("Cannot find stream info")
+            }
+
+            while av_read_frame(fmtCtx, packet) >= 0 {
+                defer { av_packet_unref(packet) }
+
+                if packet!.pointee.stream_index == Int32(audioStreamIndex) {
+                    let pts = packet!.pointee.pts
+                    let duration = packet!.pointee.duration
+
+                    if pts != avNoPtsValue {
+                        let endTime = pts + duration
+                        if endTime > maxEndTime {
+                            maxEndTime = endTime
+                        }
+                    }
+                }
+            }
+        }
+
         // 转换为秒
         return Double(maxEndTime) * av_q2d(timeBase)
     }

@@ -147,7 +147,7 @@ struct WaveformExtractorTests {
             return
         }
 
-        let duration = try url.preciseDuration()
+        let duration = try await url.preciseDuration()
 
         print("FFmpeg precise duration: \(duration) seconds")
 
@@ -162,7 +162,7 @@ struct WaveformExtractorTests {
         }
 
         let avDuration = try await url.audioDuration()
-        let ffmpegDuration = try url.preciseDuration()
+        let ffmpegDuration = try await url.preciseDuration()
 
         print("AVFoundation duration: \(avDuration ?? 0) seconds")
         print("FFmpeg duration: \(ffmpegDuration) seconds")
