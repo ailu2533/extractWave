@@ -14,7 +14,7 @@ public actor WaveformExtractor {
 
     /// Extract waveform (full decode, accurate)
     public func extract(url: URL, duration: Double = -1, points: Int = defaultPoints) async throws -> WaveformData {
-        return try await extractWaveform(url: url, duration: duration, points: points)
+        try await extractWaveform(url: url, duration: duration, points: points)
     }
 }
 

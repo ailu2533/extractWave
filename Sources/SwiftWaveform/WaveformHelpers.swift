@@ -74,7 +74,8 @@ extension WaveformExtractor {
 
     func processFrame(frame: UnsafeMutablePointer<AVFrame>,
                       swrCtx: OpaquePointer,
-                      processor: inout StreamingWaveformProcessor) throws {
+                      processor: inout StreamingWaveformProcessor) throws
+    {
         let srcNbSamples = frame.pointee.nb_samples
         let dstNbSamples = swr_get_out_samples(swrCtx, srcNbSamples)
 
@@ -108,7 +109,8 @@ extension WaveformExtractor {
     }
 
     func processFrameForRMS(frame: UnsafeMutablePointer<AVFrame>,
-                            swrCtx: OpaquePointer) -> (sumSquares: Double, count: Int) {
+                            swrCtx: OpaquePointer) -> (sumSquares: Double, count: Int)
+    {
         let srcNbSamples = frame.pointee.nb_samples
         let dstNbSamples = swr_get_out_samples(swrCtx, srcNbSamples)
 

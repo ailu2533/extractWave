@@ -60,16 +60,16 @@ public struct WaveformData: Sendable, Codable {
 
 // MARK: - Sample Data for Previews
 
-extension WaveformData {
+public extension WaveformData {
     /// Generate sample waveform data for SwiftUI previews
-    public static var sample: WaveformData {
+    static var sample: WaveformData {
         let points = 250
         let data = (0 ..< points).map { _ in 0.0 }
 
         return WaveformData(
             duration: 251.0,
             sampleRate: 44100,
-            totalSamples: 11071318,
+            totalSamples: 11_071_318,
             samplesPerPoint: 44285,
             data: data
         )
