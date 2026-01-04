@@ -5,7 +5,7 @@ import Foundation
 
 // MARK: - Waveform Extractor
 
-public actor WaveformExtractor {
+public class WaveformExtractor {
     public static let defaultPoints = 120
     public static let targetSampleRate: Int32 = 4000
     private static let amplitudeBoost: Double = 2.5 // Match C++ version
@@ -13,15 +13,15 @@ public actor WaveformExtractor {
     public init() {}
 
     /// Extract waveform (full decode, accurate)
-    public func extract(url: URL, duration: Double = -1, points: Int = defaultPoints) async throws -> WaveformData {
-        try await extractWaveform(url: url, duration: duration, points: points)
+    public func extract(url: URL, duration: Double = -1, points: Int = defaultPoints) throws -> WaveformData {
+        try extractWaveform(url: url, duration: duration, points: points)
     }
 }
 
 // MARK: - Private Implementation
 
 extension WaveformExtractor {
-    private func extractWaveform(url: URL, duration: Double, points: Int) async throws -> WaveformData {
+    private func extractWaveform(url: URL, duration: Double, points: Int) throws -> WaveformData {
         let path = url.path(percentEncoded: false)
         // Open input file
         var fmtCtx: UnsafeMutablePointer<AVFormatContext>?

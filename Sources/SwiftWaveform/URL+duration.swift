@@ -112,7 +112,7 @@ public extension URL {
     }
 
     /// 使用FFmpeg通过seek到最后一帧获取精确的音频时长
-    /// 对于不支持seek的格式（如VOC），会扫描所有packets获取精确时长
+    /// 对于不支持seek的格式（如VOC），会自动回退到扫描所有packets
     func preciseDurationSync() throws -> Double {
         let path = path(percentEncoded: false)
 
